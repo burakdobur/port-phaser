@@ -38,6 +38,8 @@
         not_your_turn: 'Wait for your turn.',
         already_shot: 'You already fired at that cell.',
         network: 'Could not connect. Check your connection and try again.',
+        broker_unreachable: 'Could not reach the matchmaking server. Try again in a moment.',
+        p2p_failed: 'Found the game, but could not connect directly to it. A network or firewall may be blocking it.',
         bad_code: 'Room codes are 4 letters or digits.',
       })[code] || 'Something went wrong (' + code + ').';
     },

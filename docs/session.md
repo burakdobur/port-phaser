@@ -54,6 +54,7 @@ Below, "the server" means whichever side owns the Match: the room creator's brow
 - Trust: the host's browser holds both fleets, so the host could read the guest's fleet in DevTools. Accepted for a hobby game.
 - If the guest's connection drops, the guest forfeits. If the host's drops, the guest sees "opponent left".
 - ICE: STUN by default. TURN (for players behind strict NATs) is configured with env vars and served by `GET /api/ice`.
+- Join failures are reported by step: `broker_unreachable` (no answer from the PeerJS broker within 10 s), `session_not_found` (broker has no host with that code), `p2p_failed` (host found, but the direct channel did not open within 20 s or closed first; usually NAT/firewall, fixed by TURN).
 
 | Direction | Message |
 |-----------|---------|
