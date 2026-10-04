@@ -21,7 +21,8 @@
   const { RuleError, rules, roomCode } = SB;
 
   const ID_PREFIX = 'portphaser-';
-  const CONNECT_TIMEOUT_MS = 15000;
+  const BROKER_TIMEOUT_MS = 10000; // registering with the PeerJS broker
+  const CONNECT_TIMEOUT_MS = 20000; // finding the host and opening the direct channel
   const ICE_TIMEOUT_MS = 3000;
   const SHUTDOWN_DELAY_MS = 1000; // lets the last messages flush before the peer is destroyed
   const DEFAULT_ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
@@ -46,7 +47,7 @@
     }
   }
 
-  /** deps: { Peer, iceServers, peerOptions, shutdownDelayMs, generateCode } — injectable for tests. */
+  /** deps: { Peer, iceServers, peerOptions, shutdownDelayMs, generateCode, brokerTimeoutMs, connectTimeoutMs } — injectable for tests. */
   async function resolveDeps(deps = {}) {
     const Peer = deps.Peer || global.Peer;
     if (typeof Peer !== 'function') throw new RuleError('network');
@@ -54,19 +55,39 @@
     return { ...deps, Peer, iceServers };
   }
 
+  /** Registers with the broker. Rejects with the PeerJS error, or RuleError('broker_unreachable') on timeout. */
   function openPeer(deps, id) {
     return new Promise((resolve, reject) => {
       const options = { ...(deps.peerOptions || {}), config: { iceServers: deps.iceServers } };
       const peer = id ? new deps.Peer(id, options) : new deps.Peer(options);
-      const onError = (err) => { peer.off('open', onOpen); peer.destroy(); reject(err); };
-      const onOpen = () => { peer.off('error', onError); resolve(peer); };
+      const settle = (err) => {
+        clearTimeout(timer);
+        peer.off('open', onOpen);
+        peer.off('error', onError);
+        if (err) { peer.destroy(); reject(err); } else resolve(peer);
+      };
+      const onError = (err) => settle(err || new RuleError('broker_unreachable'));
+      const onOpen = () => settle(null);
+      const timer = setTimeout(() => settle(new RuleError('broker_unreachable')), deps.brokerTimeoutMs || BROKER_TIMEOUT_MS);
       peer.once('open', onOpen);
       peer.once('error', onError);
     });
   }
 
-  /** Guest handshake: connect, say hello, wait for welcome or reject. */
-  function connectToHost(peer, code, name) {
+  /** PeerJS errors while talking to the broker -> RuleError codes the menu can explain. */
+  function brokerError(err) {
+    if (err && err.name === 'RuleError') return err;
+    const type = err && err.type;
+    return new RuleError(type === 'network' || type === 'server-error' || type === 'socket-error' || type === 'socket-closed'
+      ? 'broker_unreachable' : 'network');
+  }
+
+  /**
+   * Guest handshake: connect, say hello, wait for welcome or reject.
+   * The broker reports an unknown host id as 'peer-unavailable' (session_not_found). If the host exists but the
+   * direct channel never opens, or closes before opening, the networks can't reach each other: p2p_failed (needs TURN).
+   */
+  function connectToHost(peer, code, name, timeoutMs) {
     return new Promise((resolve, reject) => {
       const conn = peer.connect(hostPeerId(code), { reliable: true, serialization: 'json' });
       let done = false;
@@ -79,9 +100,14 @@
         conn.off('close', onClose);
         if (err) reject(err); else resolve(value);
       };
-      const timer = setTimeout(() => finish(new RuleError('session_not_found')), CONNECT_TIMEOUT_MS);
-      const onPeerError = (err) => finish(new RuleError(err && err.type === 'peer-unavailable' ? 'session_not_found' : 'network'));
-      const onClose = () => finish(new RuleError('network'));
+      let opened = false;
+      const timer = setTimeout(() => finish(new RuleError(opened ? 'network' : 'p2p_failed')), timeoutMs || CONNECT_TIMEOUT_MS);
+      const onPeerError = (err) => {
+        const type = err && err.type;
+        if (type === 'peer-unavailable') return finish(new RuleError('session_not_found'));
+        finish(opened ? new RuleError('network') : type === 'webrtc' ? new RuleError('p2p_failed') : brokerError(err));
+      };
+      const onClose = () => finish(new RuleError(opened ? 'network' : 'p2p_failed'));
       const onData = (msg) => {
         if (msg && msg.t === 'welcome') finish(null, { conn, player: msg.player, view: msg.view });
         else if (msg && msg.t === 'reject') finish(new RuleError(msg.error || 'session_full'));
@@ -89,7 +115,7 @@
       peer.on('error', onPeerError);
       conn.on('data', onData);
       conn.on('close', onClose);
-      conn.on('open', () => conn.send({ t: 'hello', name }));
+      conn.on('open', () => { opened = true; conn.send({ t: 'hello', name }); });
     });
   }
 
@@ -109,7 +135,7 @@
           return new PeerSession({ role: 'host', peer, code, name, deps });
         } catch (err) {
           if (err && err.type === 'unavailable-id') continue; // code in use by another game; pick another
-          throw new RuleError('network');
+          throw brokerError(err);
         }
       }
       throw new RuleError('network');
@@ -124,10 +150,10 @@
       try {
         peer = await openPeer(deps, null);
       } catch (err) {
-        throw new RuleError('network');
+        throw brokerError(err);
       }
       try {
-        const welcome = await connectToHost(peer, code, name);
+        const welcome = await connectToHost(peer, code, name, deps.connectTimeoutMs);
         return new PeerSession({ role: 'guest', peer, code, deps, ...welcome });
       } catch (err) {
         peer.destroy();

@@ -133,6 +133,25 @@ test('peer session: unknown code, full room, bad code', async () => {
   await assert.rejects(PeerSession.join(host.code, 'Eve', d), { code: 'session_full' });
 });
 
+test('peer session: unreachable broker and blocked direct channel give distinct errors', async () => {
+  // Broker never answers: registration times out instead of hanging on "Connecting…".
+  class SilentPeer extends fakePeerJs() { constructor(...a) { super(...a); this.emit = () => {}; } }
+  await assert.rejects(PeerSession.create('Ada', { ...deps(SilentPeer), brokerTimeoutMs: 20 }), { code: 'broker_unreachable' });
+  await assert.rejects(PeerSession.join('ABCD', 'x', { ...deps(SilentPeer), brokerTimeoutMs: 20 }), { code: 'broker_unreachable' });
+
+  // Host found, but ICE never completes (strict NAT, no TURN): the channel never opens.
+  const Peer = fakePeerJs();
+  class NoIcePeer extends Peer { connect() { return new FakeConn(); } }
+  const host = await PeerSession.create('Ada', deps(Peer));
+  await assert.rejects(PeerSession.join(host.code, 'x', { ...deps(NoIcePeer), connectTimeoutMs: 30 }), { code: 'p2p_failed' });
+
+  // ICE fails outright: PeerJS closes the connection before it opens.
+  class IceFailPeer extends Peer {
+    connect() { const c = new FakeConn(); setImmediate(() => c.emit('close')); return c; }
+  }
+  await assert.rejects(PeerSession.join(host.code, 'x', deps(IceFailPeer)), { code: 'p2p_failed' });
+});
+
 test('peer session: room code collision picks another code', async () => {
   const codes = ['AAAA', 'AAAA', 'BBBB'];
   const d = { ...deps(fakePeerJs()), generateCode: () => codes.shift() };
