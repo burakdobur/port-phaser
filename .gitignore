@@ -1,0 +1,34 @@
+node_modules/
+dist/
+build/
+coverage/
+.parcel-cache/
+.vite/
+.cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# Phaser build artifacts
+*.map
+
+# Vercel CLI
+.vercel/

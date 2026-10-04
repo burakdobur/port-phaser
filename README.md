@@ -1,0 +1,56 @@
+# Port Phaser
+
+Two-player naval strategy game. Hot seat on one device, or online with a 4-character room code.
+Online play is peer-to-peer (WebRTC via PeerJS), so the game deploys as a static site.
+
+## Run
+
+Requires Node 18+. No `npm install` needed.
+
+```
+npm start
+```
+
+Open http://localhost:8080. To play online, one player clicks **Create game** and shares the room code
+(or invite link); the other enters it and clicks **Join**. The browsers connect directly to each other.
+Add `?net=server` to the URL to use the Node server as the referee instead (both players need to reach it).
+
+Hot seat also works by opening `index.html` directly.
+
+## Deploy to Vercel
+
+The repo is ready as is: `vercel.json` runs `npm run build` (copies the browser files to `dist/`) and
+`api/ice.js` becomes a Vercel Function at `/api/ice`.
+
+1. Push the repo to GitHub and import it in Vercel, or run `npx vercel` in this folder.
+2. Optional, recommended: add a TURN server so players behind strict NATs (some office and mobile
+   networks) can connect. Free tiers exist, e.g. Metered (metered.ca). In Vercel > Project > Settings >
+   Environment Variables set:
+   - `TURN_URLS` — comma-separated, e.g. `turn:global.relay.metered.ca:80,turns:global.relay.metered.ca:443?transport=tcp`
+   - `TURN_USERNAME`, `TURN_CREDENTIAL`
+   - `STUN_URLS` (optional, defaults to Google's public STUN)
+
+Room matchmaking uses the free public PeerJS broker (0.peerjs.com); no game state passes through it.
+
+## Test
+
+```
+npm test
+```
+
+## Docs
+
+- [docs/GAME.md](docs/GAME.md) — feature catalog, decisions, open questions (source of truth)
+- [docs/session.md](docs/session.md) — sessions, room codes, protocol
+- [docs/architecture.md](docs/architecture.md) — code structure
+- [docs/roadmap.md](docs/roadmap.md) — what's done and what's next
+
+## License
+
+Copyright (c) 2026 Burak Dobur. All rights reserved. The source is public to read; no license is granted
+to copy, modify or redistribute it.
+
+Third-party libraries in `public/lib/` keep their own licenses:
+
+- [Phaser](https://phaser.io) 3.86.0 — MIT, see `public/lib/phaser.LICENSE`
+- [PeerJS](https://peerjs.com) 1.5.5 — MIT, see `public/lib/peerjs.LICENSE`
