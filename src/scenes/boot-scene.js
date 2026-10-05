@@ -1,4 +1,4 @@
-// BootScene: builds shared textures once, then opens the menu.
+// BootScene: loads the sound effects and builds shared textures once, then opens the menu.
 // The night-sky backdrop is procedural because assets/ has no art yet.
 (function (SB) {
   'use strict';
@@ -9,7 +9,12 @@
       super('Boot');
     }
 
+    preload() {
+      SB.sfx.preload(this);
+    }
+
     create() {
+      SB.sfx.init(this.game);
       const g = this.make.graphics({ x: 0, y: 0 }, false);
       const bands = [0x0b1e33, 0x10294a, 0x16354f, 0x1f4a6a, 0x2a5f84];
       const bandH = 470 / bands.length;

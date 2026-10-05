@@ -1,4 +1,4 @@
-// Port Phaser server: serves the game files and hosts room-code sessions.
+// Knights of the Sea server: serves the game files and hosts room-code sessions.
 // Zero dependencies (Node >= 18). Protocol: JSON over HTTP + Server-Sent Events.
 //
 //   POST /api/sessions                    {name}           -> {code, player, token}
@@ -22,7 +22,7 @@ const STATIC_ALLOW = ['index.html', 'public/lib/', 'src/', 'shared/', 'assets/']
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png',
-  '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webp': 'image/webp',
+  '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.mp3': 'audio/mpeg',
 };
 const STATUS_FOR = { session_not_found: 404, bad_token: 403, session_full: 409 };
 const MAX_BODY = 16 * 1024;
@@ -129,7 +129,7 @@ if (require.main === module) {
   const store = new SessionStore();
   setInterval(() => store.sweep(), 60 * 1000).unref();
   createServer(store).listen(port, host, () => {
-    console.log(`Port Phaser running at http://localhost:${port}`);
+    console.log(`Knights of the Sea running at http://localhost:${port}`);
     for (const nets of Object.values(os.networkInterfaces())) {
       for (const n of nets || []) if (n.family === 'IPv4' && !n.internal) console.log(`  on your network: http://${n.address}:${port}`);
     }

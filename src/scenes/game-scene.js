@@ -35,6 +35,7 @@
     /** Call at the end of create(). */
     bindSession() {
       this.statusLine = SB.ui.text(this, T.width / 2, T.height - 18, '', 15, T.textDim);
+      SB.ui.muteToggle(this);
       const unsubscribe = this.session.subscribe(() => this._onSessionChange());
       this.events.once('shutdown', unsubscribe);
       this._onSessionChange();

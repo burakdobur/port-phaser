@@ -45,6 +45,9 @@ Last updated: 2026-10-04 (peer-to-peer transport, Vercel deploy)
    - `BoardView` draws a grid, ships, markers and placement preview; it reports clicks and never changes state.
    - `widgets.js` — background, text, `Button`, `modal` (used for hot-seat handoff and end of match).
    - `theme.js` — colours and error texts; `shipColor(type)` is the skin hook (F-28).
+   - `src/audio/sfx.js` — sound effects by game event (`SB.sfx.play(scene, 'hit')`). Scenes name the event; the
+     `CUES` table maps it to a file and volume in `assets/audio/`, so sounds change without touching scenes. Mute is
+     global and remembered (`ui.muteToggle`, M key). Combat sounds are regenerated with `node scripts/make-sfx.js`.
 
 ## Rules of the road
 

@@ -1,4 +1,4 @@
-# Port Phaser - Feature Catalog
+# Knights of the Sea - Feature Catalog
 
 Source of truth for the port. Every feature below either has an implementation, or is
 planned in [roadmap.md](roadmap.md). Session rules live in [session.md](session.md),
@@ -56,7 +56,7 @@ F-29 Avatar / flag - Player profile customization. Player names already exist (s
 - F-18 to F-23 Port city building.
 - F-24 to F-27 Progression system.
 - F-30 to F-33 Online multiplayer features **beyond** F-10 room-code matches (matchmaking, accounts, friends, rankings). F-10 itself is in scope (D-03).
-- F-35 Minimap, F-36 Settings, F-37 Shop, F-38 to F-40 Audio.
+- F-35 Minimap, F-36 Settings, F-37 Shop. F-38 to F-40 Audio: only sound effects with a mute toggle are in (D-08); music and volume settings are not.
 
 ## 5. Decisions log
 
@@ -68,6 +68,8 @@ F-29 Avatar / flag - Player profile customization. Player names already exist (s
 | D-04 | 2026-10-04 | Hot seat sessions have no room code. | Both players are on the same device; nothing needs to be shared. |
 | D-05 | 2026-10-04 | Leaving a match forfeits it; the opponent wins and the session is deleted. | session.md requires the other player to be notified when a session ends. |
 | D-06 | 2026-10-04 | Default online transport is peer-to-peer WebRTC (PeerJS); the room creator's browser hosts the Match. The Node server stays as an option (`?net=server`). Partly supersedes D-03. | Hosting on Vercel (static + tiny functions) can't keep in-memory sessions or long-lived SSE. It's a hobby game, so a host who could peek at the opponent's fleet in DevTools is accepted. |
+| D-07 | 2026-10-05 | The game is called **Knights of the Sea**. Code identifiers (`PortPhaser` namespace, repo and package name, `portphaser-` peer ids) keep the old name. | Renaming identifiers touches every file and would break nothing visible; players only see the title. |
+| D-08 | 2026-10-05 | Sound effects for buttons, placement, cannon fire, splash, hit, sink, opponent joined, victory and defeat, with a remembered mute toggle (speaker icon, M key). | Asked for by the product owner. Files must be royalty-free: UI cues are CC0 (uisfx), combat sounds are synthesised in-repo by `scripts/make-sfx.js`. |
 
 ## 6. Open questions (block Phase 2)
 

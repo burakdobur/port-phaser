@@ -40,14 +40,15 @@
       text(this, px, 150, 'Your fleet', 22);
       this.shipButtons = FLEET.map((spec, i) =>
         new Button(this, px, 200 + i * 56, '', () => { this.selected = spec.type; this.redraw(); }, { width: 280, height: 46, size: 18 }));
-      this.btnRotate = new Button(this, px - 72, 490, 'Rotate (R)', () => this.rotate(), { width: 136, height: 44, size: 17, color: T.button.secondary });
+      this.btnRotate = new Button(this, px - 72, 490, 'Rotate (R)', () => this.rotate(), { width: 136, height: 44, size: 17, color: T.button.secondary, sound: null });
       this.btnClear = new Button(this, px + 72, 490, 'Clear', () => this.clearFleet(), { width: 136, height: 44, size: 17, color: T.button.muted });
-      this.btnReady = new Button(this, px, 556, 'Ready', () => this.ready(), { width: 280, color: T.button.warn });
+      this.btnReady = new Button(this, px, 556, 'Ready', () => this.ready(), { width: 280, color: T.button.warn, sound: null });
       this.message = text(this, T.width / 2, 610, '', 18, T.danger);
       text(this, BOARD_X + 200, BOARD_Y + 425, 'Click a ship, then a cell. Right-click or R to rotate. Click a placed ship to move it.', 15, T.textDim);
 
       this.input.keyboard.on('keydown-R', () => this.rotate());
       this.bindSession();
+      if (this.session.mode === 'online') SB.sfx.play(this, 'opponentJoined'); // we only get here once both are in
     }
 
     // ---- state ---------------------------------------------------------
@@ -89,6 +90,7 @@
     // ---- input -----------------------------------------------------------
 
     rotate() {
+      SB.sfx.play(this, 'rotate');
       this.orientation = this.orientation === ORIENTATION.HORIZONTAL ? ORIENTATION.VERTICAL : ORIENTATION.HORIZONTAL;
       this.redraw();
     }
@@ -98,6 +100,7 @@
       if (this.pending || v.players[this.activePlayer].ready) return;
       if (this.selected) {
         this.send({ type: 'place', ship: this.selected, x: cell.x, y: cell.y, orientation: this.orientation }, () => {
+          SB.sfx.play(this, 'place');
           const placed = new Set(this.view().ownBoard.ships.map((s) => s.type));
           const next = FLEET.find((s) => !placed.has(s.type));
           this.selected = next ? next.type : null;
@@ -120,14 +123,14 @@
     }
 
     ready() {
-      this.send({ type: 'ready' });
+      this.send({ type: 'ready' }, () => SB.sfx.play(this, 'ready'));
     }
 
     send(action, onOk) {
       this.pending = true;
       this.session.dispatch(this.activePlayer, action)
         .then(() => { this.message.setText(''); if (onOk) onOk(); })
-        .catch((err) => this.message.setText(T.errorText(err.code)))
+        .catch((err) => { SB.sfx.play(this, 'invalid'); this.message.setText(T.errorText(err.code)); })
         .finally(() => { this.pending = false; this.redraw(); });
     }
 
