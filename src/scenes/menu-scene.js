@@ -29,7 +29,8 @@
 
     create() {
       background(this, 0.35);
-      text(this, T.width / 2, 70, 'PORT PHASER', 56);
+      SB.ui.muteToggle(this);
+      text(this, T.width / 2, 70, 'KNIGHTS OF THE SEA', 52);
       text(this, T.width / 2, 125, 'A two-player naval strategy game', 22, T.textMuted);
 
       const leftX = 230;

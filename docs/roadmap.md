@@ -43,4 +43,4 @@ Planned shape: a `weapons` inventory per player in `Match`, a `useWeapon {weapon
 
 ## Not in scope
 
-AI opponent, port city building, progression, online features beyond room codes (F-30–F-33), shop, minimap, settings, audio. See GAME.md section 4.
+AI opponent, port city building, progression, online features beyond room codes (F-30–F-33), shop, minimap, settings, music. Sound effects are done (D-08). See GAME.md section 4.

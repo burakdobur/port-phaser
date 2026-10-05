@@ -1,4 +1,4 @@
-// Small Phaser UI helpers: background, text, buttons, modal overlay.
+// Small Phaser UI helpers: background, text, buttons, mute toggle, modal overlay.
 (function (SB) {
   'use strict';
   const T = SB.theme;
@@ -13,9 +13,9 @@
       .setOrigin(originX, 0.5);
   }
 
-  /** A rectangle button with a label. Phaser has no built-in button, so this is ours. */
+  /** A rectangle button with a label. Phaser has no built-in button, so this is ours. Clicks play `sound` (null for none). */
   class Button extends Phaser.GameObjects.Container {
-    constructor(scene, x, y, label, onClick, { width = 220, height = 48, color = T.button.primary, size = 20 } = {}) {
+    constructor(scene, x, y, label, onClick, { width = 220, height = 48, color = T.button.primary, size = 20, sound = 'click' } = {}) {
       super(scene, x, y);
       this.color = color;
       this.enabled = true;
@@ -26,7 +26,11 @@
       this.setInteractive({ useHandCursor: true });
       this.on('pointerover', () => this.enabled && this.bg.setFillStyle(Phaser.Display.Color.ValueToColor(color).brighten(15).color));
       this.on('pointerout', () => this.bg.setFillStyle(this.enabled ? color : T.button.muted));
-      this.on('pointerdown', (pointer) => { if (this.enabled && !pointer.rightButtonDown()) onClick(); });
+      this.on('pointerdown', (pointer) => {
+        if (!this.enabled || pointer.rightButtonDown()) return;
+        if (sound) SB.sfx.play(scene, sound);
+        onClick();
+      });
       scene.add.existing(this);
     }
 
@@ -41,6 +45,20 @@
       this.label.setText(value);
       return this;
     }
+  }
+
+  /** Speaker icon in the top-left corner that mutes all sound; M does the same. The setting is remembered. */
+  function muteToggle(scene) {
+    const icon = () => (SB.sfx.isMuted() ? '🔇' : '🔊');
+    const t = scene.add.text(22, 22, icon(), { fontFamily: T.font, fontSize: '24px' })
+      .setOrigin(0.5).setDepth(200).setAlpha(0.8).setInteractive({ useHandCursor: true });
+    const toggle = () => { SB.sfx.toggleMute(scene); t.setText(icon()); };
+    t.on('pointerdown', toggle);
+    t.on('pointerover', () => t.setAlpha(1));
+    t.on('pointerout', () => t.setAlpha(0.8));
+    // Not while typing a name or room code into a menu field.
+    scene.input.keyboard.on('keydown-M', (e) => { if (!(e.target instanceof HTMLInputElement)) toggle(); });
+    return t;
   }
 
   /** Full-screen blocking panel with a title, body and buttons. Used for hot-seat handoff and end of match. */
@@ -60,5 +78,5 @@
     return c;
   }
 
-  SB.ui = { background, text, Button, modal };
+  SB.ui = { background, text, Button, muteToggle, modal };
 })(window.PortPhaser);

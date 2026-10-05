@@ -2,7 +2,7 @@
   "name": "port-phaser",
   "version": "0.3.0",
   "private": true,
-  "description": "Port Phaser - a Phaser game with hot seat and peer-to-peer online play",
+  "description": "Knights of the Sea - a Phaser naval strategy game with hot seat and peer-to-peer online play",
   "scripts": {
     "start": "node server/server.js",
     "build": "node scripts/build.js",

@@ -10,6 +10,8 @@
   const RIGHT_X = 470;
   const BOARD_Y = 170;
   const RESULT_DELAY_MS = 1300;
+  const IMPACT_DELAY_MS = 400; // cannon fires, then the shot lands
+  const IMPACT_CUE = { [SHOT.MISS]: 'splash', [SHOT.HIT]: 'hit', [SHOT.SUNK]: 'sink' };
   const COLS = 'ABCDEFGHIJ';
   const cellName = (x, y) => COLS[x] + (y + 1);
 
@@ -53,7 +55,9 @@
         if (this.session.mode === 'hotseat' && v.phase === PHASE.COMBAT) this.showHandoff(this.viewer, 'fires first');
       }
       const view = this.session.view(this.viewer);
-      const shotKey = view.lastShot && `${view.version}`;
+      // A player never fires at the same cell twice, so shooter + cell identifies a shot; the view version
+      // alone would replay the last shot (and its sound) on any later change, such as a forfeit.
+      const shotKey = view.lastShot && `${view.lastShot.by}:${view.lastShot.x},${view.lastShot.y}`;
       if (view.lastShot && shotKey !== this.lastSeenShot) {
         this.lastSeenShot = shotKey;
         this.announce(view);
@@ -72,6 +76,10 @@
       else if (s.result === SHOT.HIT) msg = mine ? `Hit at ${cellName(s.x, s.y)}!` : `${shooter} hit your ship at ${cellName(s.x, s.y)}!`;
       else msg = mine ? `You sank the enemy ${shipName}!` : `${shooter} sank your ${shipName}!`;
       this.resultText.setText(msg).setColor(s.result === SHOT.MISS ? T.textMuted : T.danger);
+      if (allowHandoff) { // the replay for the next hot-seat viewer is silent: they heard it already
+        SB.sfx.play(this, 'cannon');
+        SB.sfx.play(this, IMPACT_CUE[s.result] || 'hit', { delay: IMPACT_DELAY_MS });
+      }
 
       // Hot seat: let the shooter see the result, then hand the device over.
       if (allowHandoff && this.session.mode === 'hotseat' && mine && view.phase === PHASE.COMBAT) {
@@ -106,11 +114,14 @@
       const winnerName = view.winner === null ? 'Nobody' : view.players[view.winner].name;
       const iWon = this.session.mode === 'online' && view.winner === view.you;
       const title = this.session.mode === 'online' ? (iWon ? 'Victory!' : 'Defeat') : `${winnerName} wins!`;
+      const lost = this.session.mode === 'online' && !iWon;
       const reason = view.endReason === 'forfeit'
         ? `${view.players[1 - view.winner].name} left the game.`
         : `${winnerName} sank the entire enemy fleet.`;
       const footer = this.session.code ? `\nRoom code ${this.session.code} is no longer valid.` : '';
-      this.time.delayedCall(view.endReason === 'forfeit' ? 0 : 1200, () => {
+      // After a final shot, wait for the sink sound to play out before the result.
+      this.time.delayedCall(view.endReason === 'forfeit' ? 0 : 1800, () => {
+        SB.sfx.play(this, lost ? 'defeat' : 'victory');
         modal(this, { title, body: reason + footer, buttons: [{ label: 'Back to menu', onClick: () => this.toMenu() }] });
       });
     }
